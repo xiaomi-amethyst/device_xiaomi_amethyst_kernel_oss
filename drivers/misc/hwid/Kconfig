@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config MI_HARDWARE_ID
+	tristate "Xiaomi hardware identification"
+	depends on QCOM_SOCINFO
+	help
+	  Expose Xiaomi project, region and board revision information supplied
+	  through the hwid module parameters. Required by Xiaomi board drivers.
+	  The hwid_value, project, project_adc and build_adc parameters must
+	  be supplied by the device's boot/module-loading configuration.
+	  If built as a module, the module will be called hwid.

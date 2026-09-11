@@ -3405,6 +3405,8 @@ static int sih_i2c_probe(struct i2c_client *i2c,
 	}
 	if (ret) {
 		hp_err("%s:acquire gpio resources failed, ret = %d, cnt = %d\n", __func__, ret, cnt);
+		if (ret == -EBUSY)
+			ret = -EPROBE_DEFER;
 		goto err_prepare_res;
 	}
 

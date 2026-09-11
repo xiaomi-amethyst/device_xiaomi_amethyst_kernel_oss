@@ -55,6 +55,7 @@ class BazelBuilder:
     """Helper class for building with Bazel"""
 
     def __init__(self, target_list, skip_list, out_dir, dry_run, user_opts):
+        self.process_list = []
         self.workspace = os.path.realpath(
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "..")
         )
@@ -75,7 +76,6 @@ class BazelBuilder:
         self.skip_list = skip_list
         self.dry_run = dry_run
         self.user_opts = user_opts
-        self.process_list = []
         if len(self.target_list) > 1 and out_dir:
             logging.error("cannot specify multiple targets with one out dir")
             sys.exit(1)
@@ -158,11 +158,16 @@ class BazelBuilder:
                 )
                 self.process_list.append(query_cmd)
                 label_list = [l.decode("utf-8") for l in query_cmd.stdout.read().splitlines()]
+                query_cmd.wait()
             except Exception as e:
                 logging.error(e)
                 sys.exit(1)
 
             self.process_list.remove(query_cmd)
+
+            if query_cmd.returncode:
+                logging.error("Bazel query failed with exit code %s", query_cmd.returncode)
+                sys.exit(query_cmd.returncode)
 
             if not label_list:
                 logging.error(
