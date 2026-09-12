@@ -82,8 +82,8 @@ Two community references were checked out locally for investigation:
   `FT3683G` controller sources. Its framework uses the older
   `xiaomitouch_register_modedata` interface, and its FocalTech driver binds
   `focaltech,n16-3683g-spi`. Its Goodix driver expects a `panel` phandle and
-  uses L16 default firmware names; the Amethyst touch node has no such
-  phandle and requests different firmware/config names.
+  uses L16 default firmware names, whereas Amethyst's base overlay previously
+  lacked that phandle and requests different firmware/config names.
 
 Other SM8650/SM8735 trees contain the modern common framework, but the
 controller sources inspected were not a complete matching Amethyst pair.
@@ -128,6 +128,72 @@ The FT3683G reference build was also attempted. It fails on old remove/procfs
 APIs, two malformed logging calls, and a missing `include/firmware/fw_sample.i`
 include. Correct Amethyst firmware selection and framework integration are
 required before treating that driver as an Amethyst candidate.
+
+## Rooted-stock reference observations
+
+A read-only inspection was performed over rooted ADB with an explicit local
+command allowlist; no writes, reloads or settings changes were issued to the
+phone. The phone was running HyperOS OS3.0.305.0.WOPCNXM and kernel
+`6.1.138-android14-Wild` with KernelSU. This is the tested environment, not
+proof that the kernel was unmodified.
+
+Verified live settings (`hwid_value=1638400`, `project=12`, `build_adc=20488`,
+`project_adc=4537`, SoC ID 636) decode to project 12, global region and build
+revision 9. They validate the reconstructed bit fields and Amethyst product
+mapping, but must be supplied by boot configuration rather than compiled in:
+they are specific to that inspected board.
+
+The phone's SPI device `spi0.0` is bound to `xiaomi,touch-spi`. Both
+controller modules are loaded, while `/proc/bus/input/devices` identifies the
+active input device as `goodix_ts`. Its stock module contains this source
+path:
+
+```text
+vendor/xiaomi/proprietary/touch/touchfeature_v2/touch_driver/o16u/goodix_9916k/
+```
+
+That path was extracted from the module for candidate identification; the
+corresponding source directory was not found in the public MiCode branches
+checked. Embedded strings also use the released `goodix_firmware_csot.bin` and
+`goodix_cfg_group_csot.bin` names, and the pcopied binaries match those names.
+
+`/sys/hwid` is absent despite the stock module's four sysfs attribute
+registrations. This runtime evidence agrees with its stock init code deleting
+the kobject immediately after creating the group, so a reconstructed driver
+should not claim stock's broken sysfs lifetime is a hardware interface.
+
+The phone's running-DTB touch node has a six-entry `panel` phandle property.
+That entry corresponds to the released display devicetree's
+`amethyst-sde-display.dtsi`, which links the SPI touch device to six panel
+sources. Display output and notifier integration still need a matching build
+and device test; read-only inspection cannot prove these are functionally
+correct. The phone's stock DT overlay applies cleanly to the added display
+overlay node because its target path exists.
+
+## Live device diagnostic summary
+
+- Active input: `goodix_ts`; bound SPI driver: `xiaomi,touch-spi`.
+- Touch modules loaded: `xiaomi_touch`, `goodix_core`, `focaltech_touch`.
+- Framework dependencies: `panel_event_notifier` and `miev`.
+- hwid: `hwid_value=1638400`, `project=12`, `build_adc=20488`,
+  `project_adc=4537`; SoC ID 636.
+- `/sys/hwid` is absent after init.
+- Display link: six-panel `panel` property present in running DT.
+- Firmware/config names confirmed: `goodix_firmware_csot.bin`,
+  `goodix_cfg_group_csot.bin`, plus secondary Goodix firmware and THP INI
+  files.
+
+These observations validate the existing Goodix stock interface and provide
+constraints for a source port. They do not establish that a rebuilt OSS stack
+is boot- or touch-functional.
+
+The local report and read-only captures (input devices, running FDT, live
+module files and Goodix firmware/config binaries) are under
+`../out/phone-readonly`. They are evidence for source comparison and should
+not be blindly mixed into a build. The live kernel/KernelSU environment and
+published prebuilt repository's touch module versions differ, so extracted
+source-path and binding information must be treated as evidence to port
+against, not proof of a compatible upstream source.
 
 A complete OSS touchscreen stack remains pending. The checked-in fixes
 provide a buildable source kernel/DT foundation, a matching panel notifier
