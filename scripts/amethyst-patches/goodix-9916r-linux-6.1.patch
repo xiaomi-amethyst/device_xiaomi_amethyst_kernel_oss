@@ -1,0 +1,35 @@
+diff --git a/drivers/input/touchscreen/goodix_9916r/goodix_brl_i2c.c b/drivers/input/touchscreen/goodix_9916r/goodix_brl_i2c.c
+index af13f5b..3fb0aa9 100644
+--- a/drivers/input/touchscreen/goodix_9916r/goodix_brl_i2c.c
++++ b/drivers/input/touchscreen/goodix_9916r/goodix_brl_i2c.c
+@@ -221 +221 @@ static int goodix_i2c_probe(struct i2c_client *client,
+-static int goodix_i2c_remove(struct i2c_client *client)
++static void goodix_i2c_remove(struct i2c_client *client)
+@@ -224 +223,0 @@ static int goodix_i2c_remove(struct i2c_client *client)
+-	return 0;
+diff --git a/drivers/input/touchscreen/goodix_9916r/goodix_brl_spi.c b/drivers/input/touchscreen/goodix_9916r/goodix_brl_spi.c
+index 394f500..5674237 100644
+--- a/drivers/input/touchscreen/goodix_9916r/goodix_brl_spi.c
++++ b/drivers/input/touchscreen/goodix_9916r/goodix_brl_spi.c
+@@ -312 +312 @@ static int goodix_spi_probe(struct spi_device *spi)
+-static int goodix_spi_remove(struct spi_device *spi)
++static void goodix_spi_remove(struct spi_device *spi)
+@@ -315 +314,0 @@ static int goodix_spi_remove(struct spi_device *spi)
+-	return 0;
+diff --git a/drivers/input/touchscreen/goodix_9916r/goodix_ts_core.c b/drivers/input/touchscreen/goodix_9916r/goodix_ts_core.c
+index 5597c83..dcf27af 100644
+--- a/drivers/input/touchscreen/goodix_9916r/goodix_ts_core.c
++++ b/drivers/input/touchscreen/goodix_9916r/goodix_ts_core.c
+@@ -1035 +1035 @@ static int rawdata_proc_open(struct inode *inode, struct file *file)
+-	return single_open_size(file, rawdata_proc_show, PDE_DATA(inode),
++	return single_open_size(file, rawdata_proc_show, pde_data(inode),
+@@ -1074 +1074 @@ static int framedata_proc_open(struct inode *inode, struct file *file)
+-	return single_open_size(file, framedata_proc_show, PDE_DATA(inode),
++	return single_open_size(file, framedata_proc_show, pde_data(inode),
+diff --git a/drivers/input/touchscreen/goodix_9916r/goodix_ts_inspect.c b/drivers/input/touchscreen/goodix_9916r/goodix_ts_inspect.c
+index 6010707..dba2dc6 100644
+--- a/drivers/input/touchscreen/goodix_9916r/goodix_ts_inspect.c
++++ b/drivers/input/touchscreen/goodix_9916r/goodix_ts_inspect.c
+@@ -2987 +2987 @@ static int auto_test_open(struct inode *inode, struct file *file)
+-	return single_open_size(file, auto_test_result_show, PDE_DATA(inode),
++	return single_open_size(file, auto_test_result_show, pde_data(inode),

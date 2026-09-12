@@ -90,8 +90,46 @@ controller sources inspected were not a complete matching Amethyst pair.
 The useful controller references require an actual port of framework,
 display callbacks, DT property handling, firmware selection and panel-specific
 features. Merely renaming their DT compatible would not make them a verified
-Amethyst replacement. They have not been added to the build.
+Amethyst replacement. They are not part of the default device build.
+
+## Goodix Linux 6.1 reference build
+
+The Garnet reference at commit
+`b6b8649899069260544e0f8df3d3c8bf9c59f1cf` now builds both its
+`xiaomi_touch.ko` and `goodix_core.ko` against our Amethyst kernel. The small
+compatibility patch changes SPI/I2C remove callbacks to `void` and replaces
+the removed `PDE_DATA()` API with `pde_data()`.
+
+After the standalone kernel build:
+
+```sh
+bash scripts/build-goodix-reference.sh
+```
+
+This fetches the pinned reference into
+`../qcom/opensource/touch-garnet-reference`, applies the version-specific
+patch idempotently, and builds the two modules with the kernel's generated
+headers and symbol table. Existing checkouts must have the expected revision.
+The script accepts `TOUCH_REFERENCE_DIR`, `OUT_DIR`, `CLANG_BIN`, `JOBS` and
+`HOST_SYSROOT`. The zero-context patch is tied to the pinned revision.
+
+Outputs are under the reference's `drivers/input/touchscreen/xiaomi/` and
+`drivers/input/touchscreen/goodix_9916r/` directories. Both passed compilation,
+linking, modpost and BTF generation without unresolved symbols. Forward and
+reverse patch checks and the repeated/idempotent build were also verified.
+
+**This is a controller-port starting point, not a stock touch replacement.**
+The pair uses its own older Xiaomi framework, retains its original
+Garnet-compatible DT match, and has not been loaded on Amethyst. It still
+needs correct binding, panel notification/firmware handling, userspace
+interface validation and tests on a phone with the Goodix controller.
+
+The FT3683G reference build was also attempted. It fails on old remove/procfs
+APIs, two malformed logging calls, and a missing `include/firmware/fw_sample.i`
+include. Correct Amethyst firmware selection and framework integration are
+required before treating that driver as an Amethyst candidate.
 
 A complete OSS touchscreen stack remains pending. The checked-in fixes
-provide a buildable source kernel/DT foundation and a matching panel notifier
-interface; they do not claim working touch or a tested boot image.
+provide a buildable source kernel/DT foundation, a matching panel notifier
+interface and a reproducible Goodix reference build. Working Amethyst touch
+and device boot still require validation.

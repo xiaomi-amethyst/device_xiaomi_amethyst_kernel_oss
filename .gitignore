@@ -37,6 +37,7 @@
 *.o
 *.o.*
 *.patch
+!/scripts/amethyst-patches/*.patch
 *.rmeta
 *.rsi
 *.s
