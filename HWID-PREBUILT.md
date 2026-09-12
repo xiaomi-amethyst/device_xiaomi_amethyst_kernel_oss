@@ -156,15 +156,17 @@ defaults match stock but are not proof of the correct board/region values.
 
 Matching hwid's exports does **not** make the whole standalone kernel
 compatible with stock modules. After installing BTF tooling and regenerating
-the config, the final audit found CRC mismatches in 13 of 715 prebuilt module
+the config and restoring the stock panel-notifier enum, the final audit found
+CRC mismatches in 2 of 715 prebuilt module
 files, and 107 files with missing providers in the rebuilt in-tree symbol
 table. `module_layout` now matches stock (`0xea759d7f`). The initial build
 without the BTF tooling available at configuration time differed here and
 reported mismatches for all module files.
 
-The remaining CRC differences are `panel_event_notifier_register` (11 files,
-including stock touch/fingerprint modules), `update_sched_opt` (sched-penalty)
-and `ufshcd_qti_hba_init_crypto_capabilities` (ufs_qcom). Duplicate module files
+The remaining CRC differences are `update_sched_opt` (sched-penalty)
+and `ufshcd_qti_hba_init_crypto_capabilities` (ufs_qcom). The earlier 11
+`panel_event_notifier_register` mismatches were fixed using stock BTF enum
+evidence; see `TOUCHSCREEN.amethyst.md`. Duplicate module files
 in vendor_boot and vendor_dlkm are counted separately. This result makes
 stock reuse more plausible than the initial audit, but does not establish
 loadability or boot compatibility.

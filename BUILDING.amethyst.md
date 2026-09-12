@@ -15,9 +15,10 @@ KCFI IDs matching the supplied stock module. Its getters also match the stock
 AArch64 machine code in emulator tests. See `HWID-PREBUILT.md`.
 
 **Boot compatibility remains unresolved.** Of 715 supplied stock module files,
-13 have import-CRC mismatches against the final standalone build. Eleven
-involve `panel_event_notifier_register`; the other two involve `update_sched_opt`
-and `ufshcd_qti_hba_init_crypto_capabilities`. There are also 107 module files
+2 have import-CRC mismatches against the final standalone build:
+`update_sched_opt` and `ufshcd_qti_hba_init_crypto_capabilities`. Restoring the
+stock panel-notifier enum resolved the previous 11 touch/fingerprint/power
+module mismatches. There are also 107 module files
 requiring providers absent from the in-tree `Module.symvers`. `module_layout`
 now matches stock (`0xea759d7f`). The first diagnostic build lacked host BTF
 tooling during configuration and reported much broader mismatches; install
@@ -81,6 +82,11 @@ DT compilation alone does not provide working touch. The default build
 does not silently reuse the stock touch modules. Touch driver integration,
 display/camera overlays, external modules and device testing are still
 required for a complete OSS device-kernel package.
+
+`TOUCHSCREEN.amethyst.md` records the candidate controller sources, framework
+differences, and the verified panel-notifier ABI fix. Stock touch module CRCs
+now match all providers present in the standalone build, but the common touch
+module still requires the five `cdev_tevent_*` exports supplied by stock miev.
 
 MiCode's `flourite-v-oss` release contains Amethyst/SM7635 and Volcano
 support. Its device-tree platform map selects `volcano.dtb`, `volcano6.dtb`,
