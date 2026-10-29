@@ -1106,8 +1106,9 @@ static void migrate_busy_time_subtraction(struct task_struct *p, int new_cpu)
 				wts->window_start, src_rq->cpu, src_wrq->window_start);
 
 
-	/* safe to update the task cyc cntr for new_cpu without the new_cpu rq_lock */
-	update_task_cpu_cycles(p, new_cpu, wallclock);
+	/* Do not update the destination runqueue without its lock. */
+	if (use_cycle_counter)
+		wts->cpu_cycles = qcom_cpufreq_get_cpu_cycle_counter(new_cpu);
 
 	new_task = is_new_task(p);
 	/* Protected by rq_lock */

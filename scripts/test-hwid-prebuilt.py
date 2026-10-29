@@ -109,8 +109,18 @@ def main():
     parser.add_argument("rebuilt_object", type=Path)
     args = parser.parse_args()
     stock, rebuilt = Module(args.stock), Module(args.rebuilt_object)
-    cmdfile = args.rebuilt_object.with_name("." + args.rebuilt_object.name + ".cmd")
-    crcs = dict(re.findall(r"^#SYMVER (\w+) (0x[0-9a-f]+)$", cmdfile.read_text(), re.MULTILINE))
+    # Recent kernels record the modversions CRCs in the object's .cmd file
+    # (drivers/misc/hwid/.hwid.o.cmd) rather than the linked module's
+    # (.hwid.ko.cmd), so accept either location.
+    stem = args.rebuilt_object.with_suffix("").name
+    crcs = {}
+    for name in (args.rebuilt_object.name, stem + ".o"):
+        cmdfile = args.rebuilt_object.with_name("." + name + ".cmd")
+        if cmdfile.is_file():
+            crcs = dict(re.findall(r"^#SYMVER (\w+) (0x[0-9a-f]+)$",
+                                   cmdfile.read_text(), re.MULTILINE))
+            if crcs:
+                break
     exports = sorted(name[len("__crc_"):] for name in stock.symbols if name.startswith("__crc_"))
     assert len(exports) == 9 and set(exports) == set(crcs)
     for name in exports:

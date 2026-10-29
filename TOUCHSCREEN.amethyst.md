@@ -67,6 +67,144 @@ For `xiaomi_touch.ko`, those missing exports are `cdev_tevent_alloc`,
 `cdev_tevent_destroy`. CRCs for all its providers present in the rebuilt
 symbol table now match. No stock touch modules have been installed or loaded.
 
+## Source-port review (2026-10-29)
+
+The released Amethyst overlay has one SPI device, compatible
+`xiaomi,touch-spi`, with shared reset/IRQ GPIOs and properties for either a
+Goodix 9916R or a FocalTech 3683G controller. They are alternatives; loading
+both drivers cannot make both controllers probe the single device.
+
+The matching stock modules confirm this binding:
+
+```text
+goodix_core.ko:    xiaomi,touch-spi
+focaltech_touch.ko: xiaomi,touch-spi
+```
+
+The public candidate at
+`lunik1980-code/kernel_xiaomi_amethyst_sm7635` contains Xiaomi framework,
+Goodix Berlin and FocalTech 3683G directories, but it is not a usable
+Amethyst port as published:
+
+- its Goodix SPI match table is `goodix,gt9916r`, not `xiaomi,touch-spi`;
+- its FocalTech SPI match table is `focaltech,n16-3683g-spi`, not
+  `xiaomi,touch-spi`;
+- its FocalTech source includes `../xiaomi/xiaomi_touch.h`, but that header
+  is absent from every commit in the repository;
+- the bundled Xiaomi framework uses a different, older API, while FocalTech
+  calls the newer `register_xiaomi_touch_client()` and
+  `notify_oneshot_sensor()` interface;
+- the one commit carrying the drivers also changes 231 unrelated files,
+  adds binaries, and deletes fingerprint code.
+
+MiCode subsequently published the official
+[`vendor_xiaomi_proprietary_touch-driver`](https://github.com/MiCode/vendor_xiaomi_proprietary_touch-driver)
+repository. Its `bixi-v-oss` branch contains a complete Xiaomi touch framework,
+including the required `xiaomi_touch.h` ABI and the stock-matching exports
+`register_touch_panel`, `unregister_touch_panel`,
+`register_xiaomi_input_dev`, `driver_get_touch_mode`, and
+`driver_update_touch_mode`. This replaces the earlier conclusion that the
+framework ABI was unavailable.
+
+Its `warsaw-w-oss` branch provides `warsaw/goodix_9916k`, the closest public
+match to the stock module: stock BTF identifies
+`touch_driver/o16u/goodix_9916k`, and this source binds `xiaomi,touch-spi`
+directly with Goodix 9916R, CSOT, FOD, MiEvent, and touch-mode support.
+
+### Safe integration procedure
+
+Only import a source bundle when it contains all of the following:
+
+1. MiCode's complete `xiaomi_touch` framework and its public ABI;
+2. Goodix 9916R and/or FocalTech 3683G source that binds
+   `xiaomi,touch-spi` directly (or an accompanying DT change that preserves
+   the stock hardware binding);
+3. Kconfig/Makefile rules producing the stock module names
+   `xiaomi_touch.ko`, `goodix_core.ko`, and/or `focaltech_touch.ko`;
+4. matching firmware/configuration files for
+   `goodix_firmware_csot` and `goodix_cfg_group_csot` when using Goodix;
+5. a successful clean standalone module build and import-CRC audit against
+   `../amethyst-prebuilt/modules/vendor_dlkm`;
+6. recovery-capable on-device testing of touch, suspend/resume, FOD, gestures,
+   rotation, and both panel variants before distributing a boot image.
+
+## Official Goodix experimental port (2026-10-29)
+
+MiCode's official `vendor_xiaomi_proprietary_touch-driver`, `warsaw-w-oss`
+branch supplies a complete `xiaomi_touch` framework and Goodix 9916R driver.
+The framework's exported APIs match the Amethyst stock consumer ABI, including
+`register_touch_panel`, `unregister_touch_panel`, `driver_get_touch_mode`,
+`register_xiaomi_input_dev`, and panel notifier helpers.
+
+This tree imports only that official framework and driver, then adapts it for
+the in-tree Linux 6.1 build:
+
+- `xiaomi_touch.ko` and `goodix_core.ko` retain their stock module names;
+- Goodix already binds the released Amethyst compatible `xiaomi,touch-spi`;
+  `MODULE_DEVICE_TABLE` exports the matching OF modalias;
+- the source is configured by `amethyst_GKI.config` and included in the
+  Amethyst Bazel module list;
+- external-module build wrappers were replaced with in-tree Kbuild rules;
+- Linux 6.1 I2C/class APIs were adapted;
+- MiCode's official external-Kbuild FOD/THP feature flags were propagated to
+  both framework and controller modules;
+- Warsaw fallback firmware names were changed from Warsaw-specific values to
+  the Amethyst stock/DT CSOT names. The DT remains authoritative.
+
+### Verified build evidence
+
+With the pinned `clang-r487747c`, host libelf/pahole dependencies, and the
+MiCode Flourite device tree installed, the clean standalone build succeeds:
+
+```text
+bash scripts/build-amethyst-standalone.sh
+exit=0
+```
+
+The resulting modules are:
+
+```text
+drivers/input/touchscreen/xiaomi/xiaomi_touch.ko
+drivers/input/touchscreen/goodix_berlin_driver/goodix_core.ko
+```
+
+`goodix_core.ko` advertises `of:N*T*Cxiaomi,touch-spi`; it depends on
+`xiaomi_touch`, and the rebuilt framework supplies its required
+`register_touch_panel`, touch-mode, and panel-notifier symbols.
+
+### Scope and device-test gate
+
+This is an **experimental Goodix 9916R candidate**, not a claim of working
+touch. The source is the closest public match to the stock Goodix module, but
+MiCode has not published an Amethyst/Flourite branch, the CSOT firmware/config
+files, or FocalTech 3683G source. Do not replace stock touch modules or flash
+this kernel without a recovery route.
+
+Before enabling distribution, test on each panel variant with serial/recovery
+access: module probe and firmware loading, coordinate reporting, FOD, gestures,
+display suspend/resume, rotation, charging/noise behavior, and repeated reboot.
+
+### Exact Goodix source lead (2026-10-29)
+
+Inspection of the stock `goodix_core.ko` BTF paths identifies its source as:
+
+```text
+vendor/xiaomi/proprietary/touch/touchfeature_v2/touch_driver/o16u/goodix_9916k
+```
+
+MiCode's official touch repository has a closer public source in the
+`warsaw-w-oss` branch at `warsaw/goodix_9916k`. It already uses
+`xiaomi,touch-spi`, explicitly identifies CSOT/Goodix 9916R panel selection,
+and implements FOD plus the MiEvent/touch-mode calls imported by the stock
+module. It is therefore the preferred eventual replacement for the Bixi
+experiment.
+
+That source is not yet buildable against this public Amethyst tree: it expects
+additional Xiaomi generated feature configuration (FOD/HTC declarations and
+members), which MiCode did not include in the published branch. It was tested
+and then removed rather than adding guessed declarations. The buildable Bixi
+port remains the only in-tree experimental Goodix candidate.
+
 ## Candidate source investigation
 
 MiCode's dedicated touch-driver repository has no Amethyst, Flourite or Muyu

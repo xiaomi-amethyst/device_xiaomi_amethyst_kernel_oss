@@ -1096,6 +1096,12 @@ static void walt_sched_newidle_balance(void *unused, struct rq *this_rq,
 				       struct rq_flags *rf, int *pulled_task,
 				       int *done)
 {
+	/* Let the core update misfit state and enqueue the pending wakeup. */
+	if (this_rq->ttwu_pending) {
+		*done = 0;
+		return;
+	}
+
 	walt_newidle_balance(this_rq, rf, pulled_task, done, false);
 }
 

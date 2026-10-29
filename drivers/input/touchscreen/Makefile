@@ -5,6 +5,10 @@
 
 # Each configuration option enables a list of files.
 
+# Warsaw's external Kbuild supplies these feature flags to both Xiaomi touch
+# framework and Goodix 9916R modules. Keep them at this shared in-tree level.
+subdir-ccflags-y += -DTOUCH_FOD_SUPPORT -DTOUCH_THP_SUPPORT
+
 wm97xx-ts-y := wm97xx-core.o
 goodix_ts-y := goodix.o goodix_fwupload.o
 
@@ -115,4 +119,6 @@ obj-$(CONFIG_TOUCHSCREEN_COLIBRI_VF50)	+= colibri-vf50-ts.o
 obj-$(CONFIG_TOUCHSCREEN_ROHM_BU21023)	+= rohm_bu21023.o
 obj-$(CONFIG_TOUCHSCREEN_RASPBERRYPI_FW)	+= raspberrypi-ts.o
 obj-$(CONFIG_TOUCHSCREEN_IQS5XX)	+= iqs5xx.o
+obj-$(CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE)	+= xiaomi/
+obj-$(CONFIG_TOUCHSCREEN_GOODIX_BRL_9916R)	+= goodix_berlin_driver/
 obj-$(CONFIG_TOUCHSCREEN_ZINITIX)	+= zinitix.o
